@@ -11,7 +11,8 @@ function shouldRotateContent(): boolean {
 }
 
 export function LandscapeEnforcer({ children }: { children: ReactNode }) {
-  const [rotate, setRotate] = useState(false);
+  // Estado inicial correto na 1.ª pintura — evita canvas 0×0 e ecrã preto ao entrar no jogo.
+  const [rotate, setRotate] = useState(() => shouldRotateContent());
 
   useEffect(() => {
     const update = () => setRotate(shouldRotateContent());
@@ -37,7 +38,7 @@ export function LandscapeEnforcer({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden bg-background">
+    <div className="fixed inset-0 z-10 overflow-hidden bg-background">
       <div
         className="absolute left-1/2 top-1/2 box-border"
         style={{

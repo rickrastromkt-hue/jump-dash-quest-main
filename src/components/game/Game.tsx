@@ -114,7 +114,7 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
 
   return (
     <LandscapeEnforcer>
-      <div className="relative h-full min-h-0 w-full bg-background select-none">
+      <div className="relative h-full min-h-[100dvh] w-full bg-background select-none">
         <div
           className="absolute inset-0 z-0"
           onPointerDown={handleCanvasPointer}

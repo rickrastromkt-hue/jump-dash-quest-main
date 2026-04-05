@@ -113,6 +113,7 @@ export class GameEngine {
   private clouds: { x: number; y: number; w: number; h: number; speed: number }[] = [];
   private images: ReturnType<typeof loadGameImages>;
   private paused = false;
+  private resizeRetriesLeft = 20;
 
   private initClouds() {
     const w = this.canvas.width / (window.devicePixelRatio || 1);
@@ -156,7 +157,14 @@ export class GameEngine {
     // getBoundingClientRect após transform dá o AABB no ecrã e estraga a resolução.
     const wCss = this.canvas.clientWidth;
     const hCss = this.canvas.clientHeight;
-    if (wCss < 1 || hCss < 1) return;
+    if (wCss < 1 || hCss < 1) {
+      if (this.resizeRetriesLeft > 0) {
+        this.resizeRetriesLeft--;
+        requestAnimationFrame(() => this.resize());
+      }
+      return;
+    }
+    this.resizeRetriesLeft = 20;
     this.canvas.width = wCss * dpr;
     this.canvas.height = hCss * dpr;
     this.ctx.scale(dpr, dpr);
