@@ -2,31 +2,42 @@ import { useState, useEffect } from "react";
 import StartScreen from "@/components/game/StartScreen";
 import Game from "@/components/game/Game";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
+import { getTopFans, type Fan } from "@/lib/firestore";
 
 const Index = () => {
-  const [playerName, setPlayerName] = useState<string | null>(null);
+  const [currentFan, setCurrentFan] = useState<Fan | null>(null);
+  const [topFans, setTopFans] = useState<Fan[]>([]);
+  const [loadingFans, setLoadingFans] = useState(false);
   const { play, stop } = useYouTubePlayer("5m1ysywXMgE");
 
   useEffect(() => {
-    if (!playerName) stop();
-  }, [playerName, stop]);
+    if (!currentFan) stop();
+  }, [currentFan, stop]);
 
-  const getScores = (): { name: string; score: number }[] => {
-    try {
-      return JSON.parse(localStorage.getItem("runner_scores") || "[]");
-    } catch {
-      return [];
-    }
-  };
+  // Recarrega o ranking toda vez que o jogador volta ao ecrã inicial
+  useEffect(() => {
+    if (currentFan) return;
+    setLoadingFans(true);
+    getTopFans(10)
+      .then(setTopFans)
+      .catch(() => setTopFans([]))
+      .finally(() => setLoadingFans(false));
+  }, [currentFan]);
 
-  if (!playerName) {
-    return <StartScreen onStart={setPlayerName} scores={getScores()} />;
+  if (!currentFan) {
+    return (
+      <StartScreen
+        onStart={setCurrentFan}
+        topFans={topFans}
+        loadingFans={loadingFans}
+      />
+    );
   }
 
   return (
     <Game
-      playerName={playerName}
-      onBack={() => setPlayerName(null)}
+      fan={currentFan}
+      onBack={() => setCurrentFan(null)}
       play={play}
       stop={stop}
     />

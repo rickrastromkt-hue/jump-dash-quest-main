@@ -4,22 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Smartphone } from "lucide-react";
 import GameHUD from "./GameHUD";
 import GameOverScreen from "./GameOverScreen";
+import type { Fan } from "@/lib/firestore";
 
 interface GameProps {
-  playerName: string;
+  fan: Fan;
   onBack: () => void;
   play: () => void;
   stop: () => void;
 }
 
-const Game = ({ playerName, onBack, play, stop }: GameProps) => {
+const Game = ({ fan, onBack, play, stop }: GameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState>({
     status: "playing",
     score: 0,
     lives: 3,
-    playerName,
+    playerName: fan.nome,
   });
   const [paused, setPaused] = useState(false);
   const [gameStarted] = useState(true);
@@ -28,13 +29,13 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
   const initGame = useCallback(() => {
     if (!canvasRef.current) return;
     engineRef.current?.stop();
-    const engine = new GameEngine(canvasRef.current, playerName, setGameState);
+    const engine = new GameEngine(canvasRef.current, fan.nome, fan.whatsapp, setGameState);
     engineRef.current = engine;
-    setGameState({ status: "playing", score: 0, lives: 3, playerName });
+    setGameState({ status: "playing", score: 0, lives: 3, playerName: fan.nome });
     setShowRotateHint(true);
     setPaused(true);
     engine.start();
-  }, [playerName]);
+  }, [fan]);
 
   useEffect(() => {
     if (!gameStarted) return;

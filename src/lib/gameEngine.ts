@@ -1,4 +1,5 @@
 import { playJumpSound, playHitSound, playGameOverSound } from "./audio";
+import { updateFanScore } from "./firestore";
 
 // ====== PLACEHOLDER IMAGES ======
 // To customize, just replace these PNGs in src/assets/game/:
@@ -114,6 +115,7 @@ export class GameEngine {
   private groundY = 0;
   private onStateChange: (state: GameState) => void;
   private state: GameState;
+  private whatsapp: string;
   private clouds: { x: number; y: number; w: number; h: number; speed: number }[] = [];
   private images: ReturnType<typeof loadGameImages>;
   private paused = false;
@@ -135,11 +137,13 @@ export class GameEngine {
   constructor(
     canvas: HTMLCanvasElement,
     playerName: string,
+    whatsapp: string,
     onStateChange: (state: GameState) => void
   ) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
     this.onStateChange = onStateChange;
+    this.whatsapp = whatsapp;
     this.state = { status: "playing", score: 0, lives: 3, playerName };
     this.player = this.createPlayer();
     this.images = loadGameImages();
@@ -388,17 +392,6 @@ export class GameEngine {
   }
 
   private saveScore() {
-    const scores = this.getScores();
-    scores.push({ name: this.state.playerName, score: this.state.score });
-    scores.sort((a, b) => b.score - a.score);
-    localStorage.setItem("runner_scores", JSON.stringify(scores.slice(0, 10)));
-  }
-
-  getScores(): { name: string; score: number }[] {
-    try {
-      return JSON.parse(localStorage.getItem("runner_scores") || "[]");
-    } catch {
-      return [];
-    }
+    updateFanScore(this.whatsapp, this.state.score).catch(console.error);
   }
 }
