@@ -1,23 +1,20 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Smartphone } from "lucide-react";
 
 /**
- * Em viewports “tipo telemóvel” em modo retrato, pede para rodar o dispositivo.
- * Em landscape ou em ecrãs largos, não interfere.
+ * Em telemóvel em retrato, roda o conteúdo 90° (landscape “lógico”) sem exigir giro físico.
+ * Em landscape ou ecrã largo, o jogo ocupa o ecrã normalmente.
  */
-function shouldShowRotateHint(): boolean {
+function shouldRotateContent(): boolean {
   if (typeof window === "undefined") return false;
-  const portrait = window.matchMedia("(orientation: portrait)").matches;
-  if (!portrait) return false;
-  const narrow = window.matchMedia("(max-width: 932px)").matches;
-  return narrow;
+  if (!window.matchMedia("(orientation: portrait)").matches) return false;
+  return window.matchMedia("(max-width: 932px)").matches;
 }
 
 export function LandscapeEnforcer({ children }: { children: ReactNode }) {
-  const [show, setShow] = useState(false);
+  const [rotate, setRotate] = useState(false);
 
   useEffect(() => {
-    const update = () => setShow(shouldShowRotateHint());
+    const update = () => setRotate(shouldRotateContent());
     update();
     const mqPortrait = window.matchMedia("(orientation: portrait)");
     const mqNarrow = window.matchMedia("(max-width: 932px)");
@@ -31,32 +28,29 @@ export function LandscapeEnforcer({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  if (!rotate) {
+    return (
+      <div className="relative h-[100dvh] min-h-[100svh] w-full overflow-hidden">
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <>
-      {children}
-      {show && (
-        <div
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background px-6 text-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="rotate-title"
-          aria-describedby="rotate-desc"
-        >
-          <Smartphone
-            className="h-16 w-16 text-primary shrink-0 animate-pulse"
-            style={{ transform: "rotate(90deg)" }}
-            aria-hidden
-          />
-          <div className="space-y-2 max-w-sm">
-            <h1 id="rotate-title" className="text-xl font-bold text-foreground">
-              Gira o telemóvel
-            </h1>
-            <p id="rotate-desc" className="text-sm text-muted-foreground leading-relaxed">
-              Este jogo funciona em modo horizontal. Roda o ecrã para o lado para continuar.
-            </p>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="fixed inset-0 z-0 overflow-hidden bg-background">
+      <div
+        className="absolute left-1/2 top-1/2 box-border"
+        style={{
+          width: "100vh",
+          height: "100vw",
+          maxHeight: "100vw",
+          maxWidth: "100vh",
+          transform: "translate(-50%, -50%) rotate(90deg)",
+          WebkitTransform: "translate(-50%, -50%) rotate(90deg)",
+        }}
+      >
+        <div className="relative h-full w-full min-h-0 min-w-0">{children}</div>
+      </div>
+    </div>
   );
 }

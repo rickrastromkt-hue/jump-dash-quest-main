@@ -152,11 +152,15 @@ export class GameEngine {
 
   resize() {
     const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
+    // clientWidth/Height = caixa de layout (correto com pai rotacionado por CSS);
+    // getBoundingClientRect após transform dá o AABB no ecrã e estraga a resolução.
+    const wCss = this.canvas.clientWidth;
+    const hCss = this.canvas.clientHeight;
+    if (wCss < 1 || hCss < 1) return;
+    this.canvas.width = wCss * dpr;
+    this.canvas.height = hCss * dpr;
     this.ctx.scale(dpr, dpr);
-    this.groundY = rect.height - GROUND_OFFSET;
+    this.groundY = hCss - GROUND_OFFSET;
     this.player.y = this.groundY - this.player.height;
   }
 

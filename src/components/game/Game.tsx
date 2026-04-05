@@ -62,7 +62,17 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
   useEffect(() => {
     const handleResize = () => engineRef.current?.resize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const canvas = canvasRef.current;
+    const ro =
+      canvas &&
+      new ResizeObserver(() => {
+        engineRef.current?.resize();
+      });
+    if (canvas && ro) ro.observe(canvas);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      ro?.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -104,7 +114,7 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
 
   return (
     <LandscapeEnforcer>
-      <div className="relative w-full h-screen bg-background select-none">
+      <div className="relative h-full min-h-0 w-full bg-background select-none">
         <div
           className="absolute inset-0 z-0"
           onPointerDown={handleCanvasPointer}
