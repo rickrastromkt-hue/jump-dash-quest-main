@@ -3,6 +3,7 @@ import { GameEngine, GameState } from "@/lib/gameEngine";
 import { Button } from "@/components/ui/button";
 import GameHUD from "./GameHUD";
 import GameOverScreen from "./GameOverScreen";
+import { RotatePhoneHint } from "./RotatePhoneHint";
 
 interface GameProps {
   playerName: string;
@@ -21,6 +22,14 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
     playerName,
   });
   const [paused, setPaused] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const gameStartLock = useRef(false);
+
+  const handleRotateHintContinue = useCallback(() => {
+    if (gameStartLock.current) return;
+    gameStartLock.current = true;
+    setGameStarted(true);
+  }, []);
 
   const initGame = useCallback(() => {
     if (!canvasRef.current) return;
@@ -33,22 +42,23 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
   }, [playerName]);
 
   useEffect(() => {
+    if (!gameStarted) return;
     initGame();
     return () => {
       engineRef.current?.stop();
       stop();
     };
-  }, [initGame, stop]);
+  }, [gameStarted, initGame, stop]);
 
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
 
   useEffect(() => {
-    if (gameState.status !== "playing") return;
+    if (!gameStarted || gameState.status !== "playing") return;
     if (paused) stop();
     else play();
-  }, [paused, gameState.status, play, stop]);
+  }, [gameStarted, paused, gameState.status, play, stop]);
 
   // Stop music on game over; limpa pausa para o próximo jogo
   useEffect(() => {
@@ -66,6 +76,7 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (!gameStarted) return;
       if (e.code === "Escape" && gameState.status === "playing") {
         e.preventDefault();
         setPaused((p) => !p);
@@ -86,10 +97,10 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [paused, gameState.status]);
+  }, [gameStarted, paused, gameState.status]);
 
   const handleCanvasPointer = () => {
-    if (paused || gameState.status !== "playing") return;
+    if (!gameStarted || paused || gameState.status !== "playing") return;
     engineRef.current?.jump();
   };
 
@@ -103,6 +114,8 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
 
   return (
     <div className="relative w-full h-screen bg-background select-none">
+      <RotatePhoneHint onContinue={handleRotateHintContinue} />
+
       <div
         className="absolute inset-0 z-0"
         onPointerDown={handleCanvasPointer}
@@ -112,7 +125,7 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
         <canvas ref={canvasRef} className="w-full h-full block touch-none" />
       </div>
 
-      {playing && paused && (
+      {gameStarted && playing && paused && (
         <div
           className="absolute inset-0 z-[15] flex flex-col items-center justify-center gap-4 bg-background/70 backdrop-blur-sm px-4"
           onPointerDown={(e) => e.stopPropagation()}
@@ -130,15 +143,17 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
         </div>
       )}
 
-      <GameHUD
-        lives={gameState.lives}
-        score={gameState.score}
-        playerName={gameState.playerName}
-        playing={playing}
-        paused={paused}
-        onTogglePause={() => setPaused((p) => !p)}
-        onQuit={handleQuit}
-      />
+      {gameStarted && (
+        <GameHUD
+          lives={gameState.lives}
+          score={gameState.score}
+          playerName={gameState.playerName}
+          playing={playing}
+          paused={paused}
+          onTogglePause={() => setPaused((p) => !p)}
+          onQuit={handleQuit}
+        />
+      )}
 
       {gameState.status === "gameover" && (
         <GameOverScreen
