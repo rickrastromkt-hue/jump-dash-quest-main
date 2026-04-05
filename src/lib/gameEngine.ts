@@ -12,12 +12,14 @@ import playerFrame3Url from "../assets/game/player_frame_3.png";
 import playerFrame4Url from "../assets/game/player_frame_4.png";
 import groundTileUrl from "../assets/game/ground_tile.png";
 import obstacleUrl from "../assets/game/obstacle.png";
+import bonusUrl from "../assets/game/bonus.png";
 
 const playerFrameUrls = [playerFrame1Url, playerFrame2Url, playerFrame3Url, playerFrame4Url];
 
 let playerFrames: HTMLImageElement[] | null = null;
 let groundTileImg: HTMLImageElement | null = null;
 let obstacleImg: HTMLImageElement | null = null;
+let bonusImg: HTMLImageElement | null = null;
 
 function loadGameImages() {
   if (!playerFrames) {
@@ -35,7 +37,11 @@ function loadGameImages() {
     obstacleImg = new Image();
     obstacleImg.src = obstacleUrl;
   }
-  return { playerFrames, groundTileImg, obstacleImg };
+  if (!bonusImg) {
+    bonusImg = new Image();
+    bonusImg.src = bonusUrl;
+  }
+  return { playerFrames, groundTileImg, obstacleImg, bonusImg };
 }
 
 export interface GameState {
@@ -82,12 +88,15 @@ const GROUND_OFFSET = 60;
 /** Duração total do arco de salto em frames: tempo subida + descida. */
 const JUMP_DURATION_FRAMES = (2 * Math.abs(JUMP_FORCE)) / GRAVITY; // ~42.5 frames
 
-/** Duração do modo bónus em frames (~5 segundos a 60fps). */
-const BONUS_DURATION = 300;
+/** Duração do modo bónus em frames (~10 segundos a 60fps). */
+const BONUS_DURATION = 600;
 
-/** Janela de spawn do bónus: 1.5s a 9s de jogo (em frames). */
+/** Multiplicador de velocidade durante o bónus. */
+const BONUS_SPEED_MULT = 5;
+
+/** Janela de spawn do bónus: 1.5s a 19s de jogo (em frames). */
 const BONUS_SPAWN_MIN = 90;
-const BONUS_SPAWN_MAX = 540;
+const BONUS_SPAWN_MAX = 1140;
 
 /** Margens da hitbox do jogador (sprite 160×65 tem bastante área vazia nas laterais). */
 const PLAYER_HIT_PAD_X = 26;
@@ -122,6 +131,13 @@ export class GameEngine {
   private bonusActive = 0;
   private bonusSpawnAt = 0;
   private bonusSpawned = false;
+  private bonusScore = 0;
+  private postBonusCooldown = 0; // frames sem obstáculos após o bónus
+
+  /** Velocidade real aplicada a obstáculos e chão. */
+  private get effectiveSpeed() {
+    return this.bonusActive > 0 ? this.speed * BONUS_SPEED_MULT : this.speed;
+  }
   private animId = 0;
   private groundY = 0;
   private onStateChange: (state: GameState) => void;
@@ -209,19 +225,53 @@ export class GameEngine {
     this.elapsed++;
 
     this.speed = 5 + this.elapsed * 0.00075;
-    this.state.score = Math.floor(this.elapsed / 6);
 
     this.bgOffset = (this.bgOffset + this.speed * 0.3) % w;
-    this.groundOffset = (this.groundOffset + this.speed) % 64;
+    this.groundOffset = (this.groundOffset + this.effectiveSpeed) % 64;
 
-    // Player physics
-    this.player.vy += GRAVITY;
-    this.player.y += this.player.vy;
-    if (this.player.y >= this.groundY - this.player.height) {
-      this.player.y = this.groundY - this.player.height;
-      this.player.vy = 0;
-      this.player.grounded = true;
+    // ── Bónus spawn: uma vez, em momento aleatório nos primeiros 20s ─────────
+    if (!this.bonusSpawned && this.elapsed >= this.bonusSpawnAt && this.elapsed <= 1200) {
+      this.bonusSpawned = true;
+      // Força gap grande para nenhum obstáculo nascer logo atrás do bónus
+      this.pixelsSinceLastObstacle = 0;
+      this.nextObstacleGap = JUMP_DURATION_FRAMES * this.speed * 5;
+      const bH = this.player.height * 2; // 2× a altura do personagem
+      const bW = Math.round(bH); // quadrado
+      this.obstacles.push({
+        x: w + 20, y: this.groundY - bH,
+        width: bW, height: bH, scored: false, isBonus: true,
+      });
     }
+
+    // ── Física do jogador ─────────────────────────────────────────────────────
+    if (this.bonusActive > 0) {
+      // Modo voo: flutua suavemente a ~160px acima do chão
+      const targetY = this.groundY - this.player.height - 160
+        + Math.sin(this.elapsed * 0.09) * 28;
+      this.player.y += (targetY - this.player.y) * 0.1;
+      this.player.vy = 0;
+      this.player.grounded = false;
+      this.bonusActive--;
+      // Pontuação 5× mais rápida durante o bónus
+      this.bonusScore += (BONUS_SPEED_MULT - 1) / 6;
+      // Ao terminar o bónus: 2 segundos sem obstáculos
+      if (this.bonusActive === 0) {
+        this.postBonusCooldown = 120;
+        this.pixelsSinceLastObstacle = 0;
+        this.nextObstacleGap = 99999; // será redefinido após o cooldown
+      }
+    } else {
+      // Física normal
+      this.player.vy += GRAVITY;
+      this.player.y += this.player.vy;
+      if (this.player.y >= this.groundY - this.player.height) {
+        this.player.y = this.groundY - this.player.height;
+        this.player.vy = 0;
+        this.player.grounded = true;
+      }
+    }
+
+    this.state.score = Math.floor(this.elapsed / 6 + this.bonusScore);
 
     this.player.frameTimer++;
     if (this.player.frameTimer > 6) {
@@ -230,38 +280,27 @@ export class GameEngine {
     }
     if (this.player.invincible > 0) this.player.invincible--;
 
-    // Bónus spawn: uma vez, em momento aleatório nos primeiros 10s
-    if (!this.bonusSpawned && this.elapsed >= this.bonusSpawnAt && this.elapsed <= 620) {
-      this.bonusSpawned = true;
-      const bSize = 48;
-      this.obstacles.push({
-        x: w + 20, y: this.groundY - bSize,
-        width: bSize, height: bSize, scored: false, isBonus: true,
-      });
-    }
-
-    // Bónus countdown + auto-jump
-    if (this.bonusActive > 0) {
-      this.bonusActive--;
-      if (this.player.grounded) {
-        this.player.vy = JUMP_FORCE * 0.78;
-        this.player.grounded = false;
+    // ── Obstáculos regulares (bloqueado só no cooldown pós-bónus) ────────────
+    if (this.postBonusCooldown > 0) {
+      this.postBonusCooldown--;
+      if (this.postBonusCooldown === 0) {
+        this.pixelsSinceLastObstacle = 0;
+        this.nextObstacleGap = JUMP_DURATION_FRAMES * this.speed * 1.4;
+      }
+    } else {
+      this.pixelsSinceLastObstacle += this.speed;
+      if (this.pixelsSinceLastObstacle >= this.nextObstacleGap) {
+        this.pixelsSinceLastObstacle = 0;
+        const comfDist = JUMP_DURATION_FRAMES * this.speed;
+        this.nextObstacleGap = comfDist * (1.2 + Math.random() * 1.3);
+        const oh = 30 + Math.random() * 40;
+        this.obstacles.push({
+          x: w + 20, y: this.groundY - oh,
+          width: 24 + Math.random() * 16, height: oh, scored: false,
+        });
       }
     }
-
-    // Obstacles — espaçamento baseado em pixels percorridos (= velocidade × tempo de salto)
-    this.pixelsSinceLastObstacle += this.speed;
-    if (this.pixelsSinceLastObstacle >= this.nextObstacleGap) {
-      this.pixelsSinceLastObstacle = 0;
-      const comfDist = JUMP_DURATION_FRAMES * this.speed;
-      this.nextObstacleGap = comfDist * (1.2 + Math.random() * 1.3);
-      const oh = 30 + Math.random() * 40;
-      this.obstacles.push({
-        x: w + 20, y: this.groundY - oh,
-        width: 24 + Math.random() * 16, height: oh, scored: false,
-      });
-    }
-    this.obstacles.forEach((o) => (o.x -= this.speed));
+    this.obstacles.forEach((o) => (o.x -= this.effectiveSpeed));
     this.obstacles = this.obstacles.filter((o) => o.x + o.width > -50);
 
     // Collision
@@ -305,19 +344,19 @@ export class GameEngine {
       }
     }
 
-    // Partículas de fogo durante o bónus
+    // Partículas de fogo/nitro durante o bónus (mais intenso pois vai 5×)
     if (this.bonusActive > 0) {
-      for (let i = 0; i < 5; i++) {
-        const bx = this.player.x + this.player.width * 0.15 + Math.random() * this.player.width * 0.7;
-        const by = this.player.y + this.player.height * 0.45 + Math.random() * this.player.height * 0.55;
+      for (let i = 0; i < 9; i++) {
+        const bx = this.player.x + Math.random() * this.player.width * 0.5;
+        const by = this.player.y + this.player.height * 0.3 + Math.random() * this.player.height * 0.7;
         this.particles.push({
           x: bx, y: by,
-          vx: (Math.random() - 0.5) * 4 - this.speed * 0.45,
-          vy: -(Math.random() * 5 + 1.5),
-          life: 0.45 + Math.random() * 0.5,
-          color: Math.random() < 0.3
-            ? `hsl(${50 + Math.random() * 15}, 100%, ${70 + Math.random() * 20}%)`
-            : `hsl(${8 + Math.random() * 30}, 100%, ${52 + Math.random() * 28}%)`,
+          vx: (Math.random() - 0.2) * 5 - this.effectiveSpeed * 0.18,
+          vy: (Math.random() - 0.5) * 4,
+          life: 0.35 + Math.random() * 0.45,
+          color: Math.random() < 0.25
+            ? `hsl(${48 + Math.random() * 14}, 100%, ${72 + Math.random() * 22}%)`
+            : `hsl(${5 + Math.random() * 32}, 100%, ${50 + Math.random() * 30}%)`,
         });
       }
     }
@@ -362,9 +401,10 @@ export class GameEngine {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, this.groundY);
 
-    // Clouds
+    // Clouds (aceleram parcialmente com o bónus para dar sensação de velocidade)
+    const cloudSpeed = this.bonusActive > 0 ? this.speed * 2.5 : this.speed;
     this.clouds.forEach((c) => {
-      c.x -= c.speed * this.speed * 0.08;
+      c.x -= c.speed * cloudSpeed * 0.08;
       if (c.x + c.w < -20) c.x = w + 20 + Math.random() * 100;
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.beginPath();
@@ -458,6 +498,45 @@ export class GameEngine {
     });
     ctx.globalAlpha = 1;
 
+    // Contador de segundos do bónus
+    if (this.bonusActive > 0) {
+      const secsLeft = Math.ceil(this.bonusActive / 60);
+      const fontSize = 42;
+
+      ctx.save();
+      ctx.font        = `900 ${fontSize}px system-ui, sans-serif`;
+      ctx.textAlign   = "center";
+      ctx.textBaseline = "top";
+
+      // Sombra/brilho dourado
+      ctx.shadowColor  = "#FF8C00";
+      ctx.shadowBlur   = 18;
+      ctx.fillStyle    = "#FFD700";
+      ctx.fillText(`BÔNUS  ${secsLeft}s`, w / 2, 56);
+
+      // Barra de progresso fina abaixo do texto
+      const barW  = Math.min(w * 0.55, 300);
+      const barH  = 5;
+      const barX  = w / 2 - barW / 2;
+      const barY  = 56 + fontSize + 8;
+      const fillW = barW * (this.bonusActive / BONUS_DURATION);
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle  = "rgba(255,255,255,0.18)";
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, barW, barH, 3);
+      ctx.fill();
+
+      ctx.fillStyle = "#FFD700";
+      ctx.shadowColor = "#FFD700";
+      ctx.shadowBlur  = 8;
+      ctx.beginPath();
+      ctx.roundRect(barX, barY, fillW, barH, 3);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
     // Running dust
     if (this.player.grounded && this.elapsed % 4 === 0) {
       this.particles.push({
@@ -469,40 +548,39 @@ export class GameEngine {
   }
 
   private drawBonusObstacle(ctx: CanvasRenderingContext2D, o: Obstacle) {
+    const pulse = 0.90 + 0.10 * Math.sin(this.elapsed * 0.18);
+    const bImg  = this.images.bonusImg;
+
     const cx = o.x + o.width / 2;
     const cy = o.y + o.height / 2;
-    const r = Math.min(o.width, o.height) * 0.46;
-    const pulse = 0.86 + 0.14 * Math.sin(this.elapsed * 0.22);
-    const angle = -Math.PI / 2 + this.elapsed * 0.045;
+    const r  = Math.max(o.width, o.height) * 0.55 * pulse;
 
-    // Aura externa
-    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2 * pulse);
-    grd.addColorStop(0,   "rgba(255,220,0,0.60)");
-    grd.addColorStop(0.45,"rgba(255,140,0,0.28)");
-    grd.addColorStop(1,   "rgba(255,60,0,0)");
+    // Aura pulsante ao redor
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.9);
+    grd.addColorStop(0,    "rgba(255,230,0,0.65)");
+    grd.addColorStop(0.45, "rgba(255,140,0,0.28)");
+    grd.addColorStop(1,    "rgba(255,60,0,0)");
     ctx.fillStyle = grd;
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 2.2 * pulse, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r * 1.9, 0, Math.PI * 2);
     ctx.fill();
 
-    // Estrela
-    ctx.save();
-    this.drawStar(ctx, cx, cy, r * pulse, angle);
-    ctx.fillStyle   = "#FFD700";
-    ctx.strokeStyle = "#FF8C00";
-    ctx.lineWidth   = 2;
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // Brilho central
-    const inner = ctx.createRadialGradient(cx, cy - r * 0.15, 0, cx, cy, r * 0.65 * pulse);
-    inner.addColorStop(0,   "rgba(255,255,200,0.75)");
-    inner.addColorStop(1,   "rgba(255,200,0,0)");
-    ctx.fillStyle = inner;
-    ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.1, r * 0.65 * pulse, 0, Math.PI * 2);
-    ctx.fill();
+    if (bImg && bImg.complete && bImg.naturalWidth > 0) {
+      const ratio = bImg.naturalWidth / bImg.naturalHeight;
+      const dh = o.height;
+      const dw = dh * ratio;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.drawImage(bImg, -dw / 2, -dh / 2, dw, dh);
+      ctx.restore();
+    } else {
+      // Fallback: estrela dourada
+      ctx.save();
+      this.drawStar(ctx, cx, cy, r * 0.8, -Math.PI / 2);
+      ctx.fillStyle = "#FFD700";
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   private drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, startAngle: number) {
@@ -513,8 +591,7 @@ export class GameEngine {
       const dist = i % 2 === 0 ? r : inner;
       const px = cx + dist * Math.cos(a);
       const py = cy + dist * Math.sin(a);
-      if (i === 0) ctx.moveTo(px, py);
-      else         ctx.lineTo(px, py);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.closePath();
   }
