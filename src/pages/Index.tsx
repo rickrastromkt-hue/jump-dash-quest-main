@@ -5,7 +5,7 @@ import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 
 const Index = () => {
   const [playerName, setPlayerName] = useState<string | null>(null);
-  const { play, stop, pause } = useYouTubePlayer("5m1ysywXMgE");
+  const { play, stop } = useYouTubePlayer("5m1ysywXMgE");
 
   useEffect(() => {
     if (!playerName) stop();
@@ -29,7 +29,6 @@ const Index = () => {
       onBack={() => setPlayerName(null)}
       play={play}
       stop={stop}
-      pause={pause}
     />
   );
 };

@@ -10,10 +10,9 @@ interface GameProps {
   onBack: () => void;
   play: () => void;
   stop: () => void;
-  pause: () => void;
 }
 
-const Game = ({ playerName, onBack, play, stop, pause }: GameProps) => {
+const Game = ({ playerName, onBack, play, stop }: GameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState>({
@@ -26,23 +25,16 @@ const Game = ({ playerName, onBack, play, stop, pause }: GameProps) => {
   const [gameStarted] = useState(true);
   const [showRotateHint, setShowRotateHint] = useState(true);
 
-  const hitResumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const initGame = useCallback(() => {
     if (!canvasRef.current) return;
     engineRef.current?.stop();
     const engine = new GameEngine(canvasRef.current, playerName, setGameState);
-    engine.setOnHit(() => {
-      pause();
-      if (hitResumeTimer.current) clearTimeout(hitResumeTimer.current);
-      hitResumeTimer.current = setTimeout(() => play(), 500);
-    });
     engineRef.current = engine;
     setGameState({ status: "playing", score: 0, lives: 3, playerName });
     setShowRotateHint(true);
     setPaused(true);
     engine.start();
-  }, [playerName, pause, play]);
+  }, [playerName]);
 
   useEffect(() => {
     if (!gameStarted) return;
