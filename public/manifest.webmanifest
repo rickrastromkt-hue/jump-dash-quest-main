@@ -4,7 +4,7 @@
   "description": "Endless runner arcade",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#12141f",
   "theme_color": "#12141f",
   "icons": [

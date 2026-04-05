@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LandscapeEnforcer } from "@/components/LandscapeEnforcer";
 import { GameEngine, GameState } from "@/lib/gameEngine";
 import { Button } from "@/components/ui/button";
 import GameHUD from "./GameHUD";
@@ -102,52 +103,54 @@ const Game = ({ playerName, onBack, play, stop }: GameProps) => {
   const playing = gameState.status === "playing";
 
   return (
-    <div className="relative w-full h-screen bg-background select-none">
-      <div
-        className="absolute inset-0 z-0"
-        onPointerDown={handleCanvasPointer}
-        onTouchStart={handleCanvasPointer}
-        role="presentation"
-      >
-        <canvas ref={canvasRef} className="w-full h-full block touch-none" />
-      </div>
-
-      {playing && paused && (
+    <LandscapeEnforcer>
+      <div className="relative w-full h-screen bg-background select-none">
         <div
-          className="absolute inset-0 z-[15] flex flex-col items-center justify-center gap-4 bg-background/70 backdrop-blur-sm px-4"
-          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute inset-0 z-0"
+          onPointerDown={handleCanvasPointer}
+          onTouchStart={handleCanvasPointer}
+          role="presentation"
         >
-          <p className="text-2xl font-bold text-foreground tracking-tight">Pausado</p>
-          <div className="flex flex-col gap-2 w-full max-w-xs">
-            <Button className="w-full" onClick={() => setPaused(false)}>
-              Continuar
-            </Button>
-            <Button type="button" variant="outline" className="w-full" onClick={handleQuit}>
-              Sair do jogo
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Espaço = pular · Esc = pausa</p>
+          <canvas ref={canvasRef} className="w-full h-full block touch-none" />
         </div>
-      )}
 
-      <GameHUD
-        lives={gameState.lives}
-        score={gameState.score}
-        playerName={gameState.playerName}
-        playing={playing}
-        paused={paused}
-        onTogglePause={() => setPaused((p) => !p)}
-        onQuit={handleQuit}
-      />
+        {playing && paused && (
+          <div
+            className="absolute inset-0 z-[15] flex flex-col items-center justify-center gap-4 bg-background/70 backdrop-blur-sm px-4"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className="text-2xl font-bold text-foreground tracking-tight">Pausado</p>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <Button className="w-full" onClick={() => setPaused(false)}>
+                Continuar
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={handleQuit}>
+                Sair do jogo
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Espaço = pular · Esc = pausa</p>
+          </div>
+        )}
 
-      {gameState.status === "gameover" && (
-        <GameOverScreen
-          playerName={gameState.playerName}
+        <GameHUD
+          lives={gameState.lives}
           score={gameState.score}
-          onRestart={initGame}
+          playerName={gameState.playerName}
+          playing={playing}
+          paused={paused}
+          onTogglePause={() => setPaused((p) => !p)}
+          onQuit={handleQuit}
         />
-      )}
-    </div>
+
+        {gameState.status === "gameover" && (
+          <GameOverScreen
+            playerName={gameState.playerName}
+            score={gameState.score}
+            onRestart={initGame}
+          />
+        )}
+      </div>
+    </LandscapeEnforcer>
   );
 };
 
