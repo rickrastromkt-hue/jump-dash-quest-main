@@ -1,5 +1,6 @@
 import { useState } from "react";
 import huffHomeUrl from "@/assets/game/huff-home.png";
+import centralHuffUrl from "@/assets/game/central-huff.png";
 import { HomeGameBackground } from "./HomeGameBackground";
 import { getFanByWhatsApp, createFan, updateFanProfile, deleteFan, getTopFans, type Fan } from "@/lib/firestore";
 import { Pencil, Trophy } from "lucide-react";
@@ -384,6 +385,17 @@ const StartScreen = ({ onStart, topFans, loadingFans }: StartScreenProps) => {
           )}
         </div>
 
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <img
+            src={centralHuffUrl}
+            alt="Rastro DEV"
+            className="w-24 object-contain select-none opacity-70"
+            draggable={false}
+          />
+          <p className="text-[10px] text-white/40 select-none">
+            Desenvolvido por Rastro DEV
+          </p>
+        </div>
       </div>
     </div>
   );

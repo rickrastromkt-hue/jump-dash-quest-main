@@ -26,15 +26,12 @@ const GameHUD = ({
         {playerName}
       </span>
       <div className="flex gap-1 shrink-0">
-        {[0, 1, 2].map((i) => (
-          <Heart
-            key={i}
-            className="h-5 w-5"
-            strokeWidth={1.75}
-            fill={i < lives ? "currentColor" : "none"}
-            color={i < lives ? "hsl(0 85% 55%)" : "hsl(230 15% 35%)"}
-          />
-        ))}
+        <Heart
+          className="h-5 w-5"
+          strokeWidth={1.75}
+          fill={lives > 0 ? "currentColor" : "none"}
+          color={lives > 0 ? "hsl(0 85% 55%)" : "hsl(230 15% 35%)"}
+        />
       </div>
     </div>
 

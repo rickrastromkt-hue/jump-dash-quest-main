@@ -19,7 +19,7 @@ const Game = ({ fan, onBack, play, stop }: GameProps) => {
   const [gameState, setGameState] = useState<GameState>({
     status: "playing",
     score: 0,
-    lives: 3,
+    lives: 1,
     playerName: fan.nome,
   });
   const [paused, setPaused] = useState(false);
@@ -31,7 +31,7 @@ const Game = ({ fan, onBack, play, stop }: GameProps) => {
     engineRef.current?.stop();
     const engine = new GameEngine(canvasRef.current, fan.nome, fan.whatsapp, setGameState);
     engineRef.current = engine;
-    setGameState({ status: "playing", score: 0, lives: 3, playerName: fan.nome });
+    setGameState({ status: "playing", score: 0, lives: 1, playerName: fan.nome });
     setShowRotateHint(true);
     setPaused(true);
     engine.start();
