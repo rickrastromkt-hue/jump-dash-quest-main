@@ -27,8 +27,8 @@ const GameHUD = ({
       </span>
       <div className="flex gap-1 shrink-0">
         {[0, 1, 2].map((i) => (
-          <span key={i} className={`text-lg ${i < lives ? "text-destructive" : "text-muted"}`}>
-            ❤️
+          <span key={i} className="text-lg leading-none select-none">
+            {i < lives ? "❤️" : "🩶"}
           </span>
         ))}
       </div>

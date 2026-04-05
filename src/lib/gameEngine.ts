@@ -73,9 +73,12 @@ interface Particle {
   color: string;
 }
 
-const GRAVITY = 0.55;
-const JUMP_FORCE = -14;
+const GRAVITY = 0.8;
+const JUMP_FORCE = -17;
 const GROUND_OFFSET = 60;
+
+/** Duração total do arco de salto em frames: tempo subida + descida. */
+const JUMP_DURATION_FRAMES = (2 * Math.abs(JUMP_FORCE)) / GRAVITY; // ~42.5 frames
 
 /** Margens da hitbox do jogador (sprite 160×65 tem bastante área vazia nas laterais). */
 const PLAYER_HIT_PAD_X = 26;
@@ -102,9 +105,10 @@ export class GameEngine {
   private obstacles: Obstacle[] = [];
   private particles: Particle[] = [];
   private bgOffset = 0;
+  private groundOffset = 0;
   private speed = 5;
-  private obstacleTimer = 0;
-  private obstacleInterval = 90;
+  private pixelsSinceLastObstacle = 0;
+  private nextObstacleGap = 280; // pixels até o primeiro obstáculo
   private elapsed = 0;
   private animId = 0;
   private groundY = 0;
@@ -189,10 +193,10 @@ export class GameEngine {
     this.elapsed++;
 
     this.speed = 5 + this.elapsed * 0.00075;
-    this.obstacleInterval = Math.max(56, 102 - this.elapsed * 0.007);
     this.state.score = Math.floor(this.elapsed / 6);
 
     this.bgOffset = (this.bgOffset + this.speed * 0.3) % w;
+    this.groundOffset = (this.groundOffset + this.speed) % 64;
 
     // Player physics
     this.player.vy += GRAVITY;
@@ -210,10 +214,14 @@ export class GameEngine {
     }
     if (this.player.invincible > 0) this.player.invincible--;
 
-    // Obstacles
-    this.obstacleTimer++;
-    if (this.obstacleTimer >= this.obstacleInterval) {
-      this.obstacleTimer = 0;
+    // Obstacles — espaçamento baseado em pixels percorridos (= velocidade × tempo de salto)
+    this.pixelsSinceLastObstacle += this.speed;
+    if (this.pixelsSinceLastObstacle >= this.nextObstacleGap) {
+      this.pixelsSinceLastObstacle = 0;
+      // distância confortável = duração do salto × velocidade atual
+      const comfDist = JUMP_DURATION_FRAMES * this.speed;
+      // próximo gap: 1.2× a 2.5× a distância confortável
+      this.nextObstacleGap = comfDist * (1.2 + Math.random() * 1.3);
       const oh = 30 + Math.random() * 40;
       this.obstacles.push({
         x: w + 20, y: this.groundY - oh,
@@ -300,11 +308,12 @@ export class GameEngine {
       ctx.fill();
     });
 
-    // Ground with tile image
+    // Ground with tile image (scrolling at game speed)
     const gImg = this.images.groundTileImg;
     if (gImg && gImg.complete && gImg.naturalWidth > 0) {
       const tileW = 64, tileH = 64;
-      for (let tx = 0; tx < w + tileW; tx += tileW) {
+      const startX = -(this.groundOffset % tileW);
+      for (let tx = startX; tx < w + tileW; tx += tileW) {
         for (let ty = this.groundY; ty < h; ty += tileH) {
           ctx.drawImage(gImg, tx, ty, tileW, tileH);
         }
