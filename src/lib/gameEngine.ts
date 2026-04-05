@@ -109,6 +109,7 @@ export class GameEngine {
   private animId = 0;
   private groundY = 0;
   private onStateChange: (state: GameState) => void;
+  private onHit: (() => void) | null = null;
   private state: GameState;
   private clouds: { x: number; y: number; w: number; h: number; speed: number }[] = [];
   private images: ReturnType<typeof loadGameImages>;
@@ -126,6 +127,10 @@ export class GameEngine {
         speed: 0.3 + Math.random() * 0.7,
       });
     }
+  }
+
+  setOnHit(cb: () => void) {
+    this.onHit = cb;
   }
 
   constructor(
@@ -238,6 +243,7 @@ export class GameEngine {
             return;
           } else {
             playHitSound();
+            this.onHit?.();
           }
           break;
         }
