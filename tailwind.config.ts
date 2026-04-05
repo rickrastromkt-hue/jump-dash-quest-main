@@ -85,10 +85,15 @@ export default {
             height: "0",
           },
         },
+        "cloud-drift": {
+          "0%": { transform: "translateX(100vw)" },
+          "100%": { transform: "translateX(-100vw)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "cloud-drift": "cloud-drift 60s linear infinite",
       },
     },
   },

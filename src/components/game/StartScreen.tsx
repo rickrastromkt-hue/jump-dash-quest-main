@@ -1,5 +1,6 @@
 import { useState } from "react";
 import huffHomeUrl from "@/assets/game/huff-home.png";
+import { HomeGameBackground } from "./HomeGameBackground";
 
 interface StartScreenProps {
   onStart: (name: string) => void;
@@ -14,51 +15,60 @@ const StartScreen = ({ onStart, scores }: StartScreenProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-      <img
-        src={huffHomeUrl}
-        alt="Jump Dash Quest"
-        className="mb-8 w-full max-w-md md:max-w-lg object-contain select-none"
-        draggable={false}
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <HomeGameBackground />
+      <div
+        className="absolute inset-0 z-[1] bg-background/70 backdrop-blur-sm"
+        aria-hidden
       />
-
-      <div className="w-full max-w-xs space-y-4">
-        <input
-          type="text"
-          placeholder="Seu nome..."
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleStart()}
-          maxLength={15}
-          className="w-full px-4 py-3 rounded-lg bg-muted border border-border text-foreground text-center text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center p-4">
+        <img
+          src={huffHomeUrl}
+          alt="Jump Dash Quest"
+          className="mb-8 w-full max-w-md md:max-w-lg object-contain select-none"
+          draggable={false}
         />
-        <button
-          onClick={handleStart}
-          disabled={!name.trim()}
-          className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-bold text-lg transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
-          style={{ boxShadow: name.trim() ? "0 0 20px hsl(199 78% 72% / 0.45)" : "none" }}
-        >
-          JOGAR
-        </button>
-      </div>
 
-      <div className="mt-4 text-xs text-muted-foreground">
-        Espaço / Toque = Pular
-      </div>
-
-      {scores.length > 0 && (
-        <div className="mt-8 w-full max-w-xs">
-          <h3 className="text-accent font-bold text-sm mb-2 text-center">🏆 RANKING</h3>
-          <div className="space-y-1">
-            {scores.slice(0, 5).map((s, i) => (
-              <div key={i} className="flex justify-between px-3 py-1.5 rounded bg-muted text-sm">
-                <span className="text-muted-foreground">{i + 1}. {s.name}</span>
-                <span className="text-primary font-mono">{s.score}</span>
-              </div>
-            ))}
-          </div>
+        <div className="w-full max-w-xs space-y-4">
+          <input
+            type="text"
+            placeholder="Seu nome..."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleStart()}
+            maxLength={15}
+            className="w-full px-4 py-3 rounded-lg bg-muted border border-border text-foreground text-center text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <button
+            onClick={handleStart}
+            disabled={!name.trim()}
+            className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-bold text-lg transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+            style={{ boxShadow: name.trim() ? "0 0 20px hsl(199 78% 72% / 0.45)" : "none" }}
+          >
+            JOGAR
+          </button>
         </div>
-      )}
+
+        <div className="mt-4 text-xs text-muted-foreground">
+          Espaço / Toque = Pular
+        </div>
+
+        {scores.length > 0 && (
+          <div className="mt-8 w-full max-w-xs">
+            <h3 className="text-accent font-bold text-sm mb-2 text-center">🏆 RANKING</h3>
+            <div className="space-y-1">
+              {scores.slice(0, 5).map((s, i) => (
+                <div key={i} className="flex justify-between rounded bg-muted px-3 py-1.5 text-sm">
+                  <span className="text-muted-foreground">
+                    {i + 1}. {s.name}
+                  </span>
+                  <span className="text-primary font-mono">{s.score}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
