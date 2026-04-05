@@ -13,9 +13,22 @@ interface GameProps {
   stop: () => void;
 }
 
+const requestFullscreen = (el: HTMLElement) => {
+  if (el.requestFullscreen) el.requestFullscreen({ navigationUI: "hide" });
+  else if ((el as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen)
+    (el as HTMLElement & { webkitRequestFullscreen: () => void }).webkitRequestFullscreen();
+};
+
+const exitFullscreen = () => {
+  if (document.exitFullscreen) document.exitFullscreen();
+  else if ((document as Document & { webkitExitFullscreen?: () => void }).webkitExitFullscreen)
+    (document as Document & { webkitExitFullscreen: () => void }).webkitExitFullscreen();
+};
+
 const Game = ({ fan, onBack, play, stop }: GameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [gameState, setGameState] = useState<GameState>({
     status: "playing",
     score: 0,
@@ -35,6 +48,7 @@ const Game = ({ fan, onBack, play, stop }: GameProps) => {
     setShowRotateHint(true);
     setPaused(true);
     engine.start();
+    if (wrapperRef.current) requestFullscreen(wrapperRef.current);
   }, [fan]);
 
   useEffect(() => {
@@ -112,13 +126,14 @@ const Game = ({ fan, onBack, play, stop }: GameProps) => {
   const handleQuit = () => {
     stop();
     engineRef.current?.stop();
+    exitFullscreen();
     onBack();
   };
 
   const playing = gameState.status === "playing";
 
   return (
-    <div className="relative w-full h-screen bg-background select-none">
+    <div ref={wrapperRef} className="relative w-full h-screen bg-background select-none">
       <div
         className="absolute inset-0 z-0"
         onPointerDown={handleCanvasPointer}
@@ -166,7 +181,6 @@ const Game = ({ fan, onBack, play, stop }: GameProps) => {
 
       {gameStarted && (
         <GameHUD
-          lives={gameState.lives}
           score={gameState.score}
           playerName={gameState.playerName}
           playing={playing}

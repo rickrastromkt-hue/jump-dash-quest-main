@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Heart, LogOut, Pause, Play } from "lucide-react";
+import { LogOut, Pause, Play } from "lucide-react";
 
 interface GameHUDProps {
-  lives: number;
   score: number;
   playerName: string;
   playing: boolean;
@@ -12,7 +11,6 @@ interface GameHUDProps {
 }
 
 const GameHUD = ({
-  lives,
   score,
   playerName,
   playing,
@@ -25,14 +23,6 @@ const GameHUD = ({
       <span className="text-foreground text-sm font-bold truncate max-w-[40vw] sm:max-w-none">
         {playerName}
       </span>
-      <div className="flex gap-1 shrink-0">
-        <Heart
-          className="h-5 w-5"
-          strokeWidth={1.75}
-          fill={lives > 0 ? "currentColor" : "none"}
-          color={lives > 0 ? "hsl(0 85% 55%)" : "hsl(230 15% 35%)"}
-        />
-      </div>
     </div>
 
     <div className="flex items-center gap-2 shrink-0 pointer-events-auto">
