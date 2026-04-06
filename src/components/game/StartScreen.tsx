@@ -1,6 +1,6 @@
 import { useState } from "react";
 import huffHomeUrl from "@/assets/game/huff-home.png";
-import centralHuffUrl from "@/assets/game/central-huff.png";
+import logoHuffUrl from "@/assets/game/logo-huff.svg";
 import { HomeGameBackground } from "./HomeGameBackground";
 import { getFanByWhatsApp, createFan, updateFanProfile, deleteFan, getTopFans, type Fan } from "@/lib/firestore";
 import { Pencil, Trophy } from "lucide-react";
@@ -358,7 +358,7 @@ const StartScreen = ({ onStart, topFans, loadingFans }: StartScreenProps) => {
         <div className="mt-8 w-full max-w-xs">
           <h3 className="text-accent font-bold text-sm mb-2 text-center flex items-center justify-center gap-1.5">
             <Trophy className="h-4 w-4" strokeWidth={1.75} />
-            RANKING GLOBAL
+            TOP 05
           </h3>
           {loadingFans ? (
             <p className="text-center text-xs text-muted-foreground animate-pulse py-2">
@@ -387,13 +387,13 @@ const StartScreen = ({ onStart, topFans, loadingFans }: StartScreenProps) => {
 
         <div className="mt-8 flex flex-col items-center gap-2">
           <img
-            src={centralHuffUrl}
+            src={logoHuffUrl}
             alt="Rastro DEV"
-            className="w-24 object-contain select-none opacity-70"
+            className="w-14 object-contain select-none"
             draggable={false}
           />
-          <p className="text-[10px] text-white/40 select-none">
-            Desenvolvido por Rastro DEV
+          <p className="text-[10px] text-white select-none">
+            Powered by @rastrodevbr
           </p>
         </div>
       </div>

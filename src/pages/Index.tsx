@@ -18,7 +18,7 @@ const Index = () => {
   useEffect(() => {
     if (currentFan) return;
     setLoadingFans(true);
-    getTopFans(10)
+    getTopFans(5)
       .then(setTopFans)
       .catch(() => setTopFans([]))
       .finally(() => setLoadingFans(false));
